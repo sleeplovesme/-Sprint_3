@@ -3,7 +3,6 @@ package main_tests;
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
 import models.Login;
@@ -11,7 +10,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.restassured.RestAssured.given;
 import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -35,7 +33,7 @@ public class LoginTests {
     @DisplayName("Логин курьера в системе")
     public void loginReturned200() {
         Login login = createObjectLogin(NINJA_LOGIN, NINJA_PASSWORD);
-        Response response = sendPostRequestV1CourierLogin(login);
+        Response response = client.CourierClient.sendPostRequestV1CourierLogin(login);
         checkStatusCodeAndIdIsNotNull(response, SC_OK);
     }
 
@@ -43,7 +41,7 @@ public class LoginTests {
     @DisplayName("Проверка получения ошибки \"Учетная запись не найдена\"")
     public void loginWithWrongLoginReturned404() {
         Login loginCourier = createObjectLogin(login, password);
-        Response response = sendPostRequestV1CourierLogin(loginCourier);
+        Response response = client.CourierClient.sendPostRequestV1CourierLogin(loginCourier);
         checkStatusCodeAndErrorMessage(response, SC_NOT_FOUND, ACCOUNT_NOT_FOUND);
     }
 
@@ -51,7 +49,7 @@ public class LoginTests {
     @DisplayName("Проверка получения ошибки \"Недостаточно данных для входа\"")
     public void loginWithoutLoginReturned400() {
         Login login = createObjectLogin(EMPTY_LOGIN, password);
-        Response response = sendPostRequestV1CourierLogin(login);
+        Response response = client.CourierClient.sendPostRequestV1CourierLogin(login);
         checkStatusCodeAndErrorMessage(response, SC_BAD_REQUEST, INSUFFICIENT_LOGIN_DATA);
     }
 
@@ -59,11 +57,6 @@ public class LoginTests {
     @Step("Создание объекта логин")
     public Login createObjectLogin(String login, String password){
         return new Login(login, password);
-    }
-
-    @Step("Отправка POST запроса на /api/v1/courier/login")
-    public Response sendPostRequestV1CourierLogin(Login login){
-        return given().contentType(ContentType.JSON).body(login).post("/api/v1/courier/login");
     }
 
     @Step("Проверка соответствия кода ответа и id не равен null")

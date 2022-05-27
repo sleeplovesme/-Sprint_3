@@ -28,31 +28,18 @@ public class GetOrderByTrackNumberTests {
     @Test
     @DisplayName("Проверка получения ошибки \"Недостаточно данных для поиска\"")
     public void getOrderByTrackNumberWithoutTrackNumberReturned400() {
-        Response responseOrdersTrack = sendGetRequestV1Courier();
+        Response responseOrdersTrack = client.CourierClient.sendGetRequestV1Courier();
         checkStatusCodeAndErrorMessage(responseOrdersTrack, SC_BAD_REQUEST, NOT_ENOUGH_DATA);
     }
 
     @Test
     @DisplayName("Проверка получения ошибки \"Заказ не найден\"")
     public void getOrderByTrackNumberTrackNumber0Returned404() {
-        Response responseOrdersTrack = sendGetRequestV1OrdersTrack(ORDER_TRACK_0);
+        Response responseOrdersTrack = client.OrderClient.sendGetRequestV1OrdersTrack(ORDER_TRACK_0);
         checkStatusCodeAndErrorMessage(responseOrdersTrack, SC_NOT_FOUND, ORDER_NOT_FOUND);
     }
 
     // Степы
-    @Step("Отправка DELETE запроса на /api/v1/courier/id")
-    public Response sendGetRequestV1Courier(){
-        return given().contentType(ContentType.JSON).get("/api/v1/orders/track");
-    }
-
-    @Step("Отправка GET запроса на /api/v1/orders/track")
-    public Response sendGetRequestV1OrdersTrack(int orderTrack) {
-        return given().contentType(ContentType.JSON)
-                .queryParam("t", orderTrack)
-                .when()
-                .get("/api/v1/orders/track");
-    }
-
     @Step("Проверка соответствия кода ответа и текста ошибки")
     public void checkStatusCodeAndErrorMessage(Response response, int statusCode, String errorMessage){
         response.then().assertThat().statusCode(statusCode).and().body("message",equalTo(errorMessage));

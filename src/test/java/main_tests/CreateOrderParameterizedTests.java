@@ -60,7 +60,7 @@ public class CreateOrderParameterizedTests {
     public void createNewOrdersReturned201() {
         CreateOrder order = createObjectOrder(FIRST_NAME, LAST_NAME, ADDRESS, METRO_STATION, PHONE,
                 RENT_TIME, DELIVERY_DATE, COMMENT, colors);
-        Response response = sendPostRequestV1Orders(order);
+        Response response = client.OrderClient.sendPostRequestV1Orders(order);
         checkStatusCodeAndIdIsNotNull(response, statusCode);
 
         // Задание: Необходимые тестовые данные создаются перед тестом и удаляются после того, как он выполнится.
@@ -72,11 +72,6 @@ public class CreateOrderParameterizedTests {
     public CreateOrder createObjectOrder(String firstName, String lastName, String address, String metroStation, String phone,
                                          int rentTime, String deliveryDate, String comment, String[] color){
         return new CreateOrder(firstName, lastName, address, metroStation, phone, rentTime, deliveryDate, comment, color);
-    }
-
-    @Step("Отправка POST запроса на /api/v1/orders")
-    public Response sendPostRequestV1Orders(CreateOrder order){
-        return given().contentType(ContentType.JSON).body(order).post("/api/v1/orders");
     }
 
     @Step("Проверка соответствия кода ответа и track не равен null")

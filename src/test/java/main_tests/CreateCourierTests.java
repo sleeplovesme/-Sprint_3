@@ -4,7 +4,6 @@ import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
 import models.CreateCourier;
@@ -14,7 +13,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.restassured.RestAssured.given;
 import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -39,17 +37,17 @@ public class CreateCourierTests {
     public void createAndDeleteNewCourier() {
         // Создание курьера
         CreateCourier courier = createObjectCourier(login, password, firstName); // создаем объект курьер (сериализация)
-        Response responseCreateCourier = sendPostRequestV1Courier(courier); // отправляем POST запрос
+        Response responseCreateCourier = client.CourierClient.sendPostRequestV1Courier(courier); // отправляем POST запрос
         checkStatusCodeAndExpectedResult(responseCreateCourier, SC_CREATED, EXPECTED_RESULT_TRUE); // проверяем код статуса и ответ (true)
 
         // Логин курьера в системе
         Login loginObject = createObjectLogin(login, password); // создаем объект логин (сериализация)
-        Response responseLoginCourier = sendPostRequestV1CourierLogin(loginObject); // отправляем POST запрос
+        Response responseLoginCourier = client.CourierClient.sendPostRequestV1CourierLogin(loginObject); // отправляем POST запрос
         LoginResponse loginResponse = deserialization(responseLoginCourier); // десериализация
         int courierId = loginResponse.getId(); // получаем id курьера
 
         // Удаление курьера
-        Response responseDeleteCourier = sendDeleteRequestV1Courier(courierId); // удаляем курьера по id
+        Response responseDeleteCourier = client.CourierClient.sendDeleteRequestV1Courier(courierId); // удаляем курьера по id
         checkStatusCodeAndExpectedResult(responseDeleteCourier, SC_OK, EXPECTED_RESULT_TRUE); // проверяем статус код и ответ (true)
     }
 
@@ -57,7 +55,7 @@ public class CreateCourierTests {
     @DisplayName("Проверка получения ошибки \"Недостаточно данных для создания учетной записи\"")
     public void createCourierWithoutPasswordReturned400() {
         CreateCourier courier = createObjectCourier(NINJA_LOGIN, EMPTY_PASSWORD, firstName);
-        Response response = sendPostRequestV1Courier(courier);
+        Response response = client.CourierClient.sendPostRequestV1Courier(courier);
         checkStatusCodeAndErrorMessage(response, SC_BAD_REQUEST, NOT_ENOUGH_DATA);
     }
 
@@ -65,7 +63,7 @@ public class CreateCourierTests {
     @DisplayName("Проверка получения ошибки \"Этот логин уже используется\"")
     public void createCourierAlreadyExistsReturned409 () {
         CreateCourier courier = createObjectCourier(NINJA_LOGIN, password, firstName);
-        Response response = sendPostRequestV1Courier(courier);
+        Response response = client.CourierClient.sendPostRequestV1Courier(courier);
         // Тест падает, т.к. в документации другой ожидемый текст
         checkStatusCodeAndErrorMessage(response, SC_CONFLICT, THIS_LOGIN_IS_ALREADY_IN_USE);
     }
@@ -75,11 +73,6 @@ public class CreateCourierTests {
     @Step("Создание объекта курьер")
     public CreateCourier createObjectCourier(String login, String password, String firstName){
         return new CreateCourier(login, password, firstName);
-    }
-
-    @Step("Отправка POST запроса на /api/v1/courier")
-    public Response sendPostRequestV1Courier(CreateCourier courier){
-        return given().contentType(ContentType.JSON).body(courier).post("/api/v1/courier");
     }
 
     @Step("Проверка соответствия кода ответа и ожидаемого результата")
@@ -97,18 +90,8 @@ public class CreateCourierTests {
         return new Login(login, password);
     }
 
-    @Step("Отправка POST запроса на /api/v1/courier/login")
-    public Response sendPostRequestV1CourierLogin(Login login){
-        return given().contentType(ContentType.JSON).body(login).post("/api/v1/courier/login");
-    }
-
     @Step("Десериализация ответа на логин курьера")
     public LoginResponse deserialization(Response responseLoginCourier){
         return responseLoginCourier.as(LoginResponse.class);
-    }
-
-    @Step("Отправка DELETE запроса на /api/v1/courier/id")
-    public Response sendDeleteRequestV1Courier(int id){
-        return given().contentType(ContentType.JSON).delete("/api/v1/courier/" + id);
     }
 }
