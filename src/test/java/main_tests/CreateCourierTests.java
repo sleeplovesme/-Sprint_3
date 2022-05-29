@@ -10,6 +10,7 @@ import models.CreateCourier;
 import models.Login;
 import models.LoginResponse;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,9 +28,26 @@ public class CreateCourierTests {
     private final static String NINJA_LOGIN = "ninja";
     private final static String EMPTY_PASSWORD = "";
 
+    Response responseCreateCourier;
+
     @Before
     public void setUp() {
         RestAssured.baseURI = "http://qa-scooter.praktikum-services.ru";
+    }
+
+    @After
+    public void clear() {
+        if (responseCreateCourier.statusCode() == SC_CREATED){
+            // Логин курьера в системе
+            Login loginObject = createObjectLogin(login, password); // создаем объект логин (сериализация)
+            Response responseLoginCourier = client.CourierClient.sendPostRequestV1CourierLogin(loginObject); // отправляем POST запрос
+            LoginResponse loginResponse = deserialization(responseLoginCourier); // десериализация
+            int courierId = loginResponse.getId(); // получаем id курьера
+
+            // Удаление курьера
+            Response responseDeleteCourier = client.CourierClient.sendDeleteRequestV1Courier(courierId); // удаляем курьера по id
+            checkStatusCodeAndExpectedResult(responseDeleteCourier, SC_OK, EXPECTED_RESULT_TRUE); // проверяем статус код и ответ (true)
+        }
     }
 
     @Test
@@ -37,35 +55,25 @@ public class CreateCourierTests {
     public void createAndDeleteNewCourier() {
         // Создание курьера
         CreateCourier courier = createObjectCourier(login, password, firstName); // создаем объект курьер (сериализация)
-        Response responseCreateCourier = client.CourierClient.sendPostRequestV1Courier(courier); // отправляем POST запрос
+        responseCreateCourier = client.CourierClient.sendPostRequestV1Courier(courier); // отправляем POST запрос
         checkStatusCodeAndExpectedResult(responseCreateCourier, SC_CREATED, EXPECTED_RESULT_TRUE); // проверяем код статуса и ответ (true)
-
-        // Логин курьера в системе
-        Login loginObject = createObjectLogin(login, password); // создаем объект логин (сериализация)
-        Response responseLoginCourier = client.CourierClient.sendPostRequestV1CourierLogin(loginObject); // отправляем POST запрос
-        LoginResponse loginResponse = deserialization(responseLoginCourier); // десериализация
-        int courierId = loginResponse.getId(); // получаем id курьера
-
-        // Удаление курьера
-        Response responseDeleteCourier = client.CourierClient.sendDeleteRequestV1Courier(courierId); // удаляем курьера по id
-        checkStatusCodeAndExpectedResult(responseDeleteCourier, SC_OK, EXPECTED_RESULT_TRUE); // проверяем статус код и ответ (true)
     }
 
     @Test
     @DisplayName("Проверка получения ошибки \"Недостаточно данных для создания учетной записи\"")
     public void createCourierWithoutPasswordReturned400() {
         CreateCourier courier = createObjectCourier(NINJA_LOGIN, EMPTY_PASSWORD, firstName);
-        Response response = client.CourierClient.sendPostRequestV1Courier(courier);
-        checkStatusCodeAndErrorMessage(response, SC_BAD_REQUEST, NOT_ENOUGH_DATA);
+        responseCreateCourier = client.CourierClient.sendPostRequestV1Courier(courier);
+        checkStatusCodeAndErrorMessage(responseCreateCourier, SC_BAD_REQUEST, NOT_ENOUGH_DATA);
     }
 
     @Test
     @DisplayName("Проверка получения ошибки \"Этот логин уже используется\"")
     public void createCourierAlreadyExistsReturned409 () {
         CreateCourier courier = createObjectCourier(NINJA_LOGIN, password, firstName);
-        Response response = client.CourierClient.sendPostRequestV1Courier(courier);
+        responseCreateCourier = client.CourierClient.sendPostRequestV1Courier(courier);
         // Тест падает, т.к. в документации другой ожидемый текст
-        checkStatusCodeAndErrorMessage(response, SC_CONFLICT, THIS_LOGIN_IS_ALREADY_IN_USE);
+        checkStatusCodeAndErrorMessage(responseCreateCourier, SC_CONFLICT, THIS_LOGIN_IS_ALREADY_IN_USE);
     }
 
 
